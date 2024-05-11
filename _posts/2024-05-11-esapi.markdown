@@ -1,0 +1,1341 @@
+---
+layout:        post
+title:         "ElasticSearch学习笔记"
+author:        "隔壁老王"
+header-style:  text
+catalog:       true
+tags:
+    - Web
+    - JavaScript
+---
+
+
+
+## Elastic Search Nest研究
+
+### 安装配置
+
+elastic search 7.0相关软件的下载 ，博主分享了百度网盘的链接
+
+链接：https://pan.baidu.com/s/1VBetGnYXB6MLmMEYWAfkEQ 
+提取码：0evp 
+
+##### elastic search介绍
+
+ElasticSearch是开源的可以快速存储，搜索，分析海量数据的全文搜索引擎。
+
+底层基于开源库Lucene。
+
+ElasticSearch是个分布式数据库，可以很容易的实现集群，实现操作PB级数据。
+
+##### elastic search安装
+
+1. elastic search是java开发的，所以在安装es之前要先安装java JDK，要求1.8版本以上,并且正确配置`JAVA_HOME`环境变量
+
+2. 解压文件elasticsearch-7.0.0-windows-x86_64.zip
+
+   进入\elasticsearch-7.0.0\bin文件夹
+
+   打开elasticsearch.bat
+
+   展示终端运行窗口
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/02.png)
+
+​	可以看到最后一行显示started 表示es启动成功 ，默认运行在http://localhost:9200
+
+3. 浏览器中打开http://localhost:9200
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/03.png)
+
+​	可以看到es运行的一些参数信息。
+
+​	至此es安装并且启动成功
+
+4. 查看配置文件 \elasticsearch-7.0.0\config目录中elasticsearch.yml是es的默认配置文件，我们先保持默认的配置，之后再对需要修改的配置进行单独配置。
+
+##### elastic search head的下载安装
+
+1. elastic search head是es的一个可视化的管理插件，用于对es的监视，实现head客户端和es服务器的交互，如创建映射，创建索引等。head项目地址`https://github.com/mobz/elasticsearch-head`
+
+2. 下载head的包后需要node.js安装依赖和运行包，所以需要先安装node.js。
+
+3. 安装node.js后进入head安装包，执行npm install 安装必要的依赖
+
+4. 执行npm run start 运行head插件
+
+5. 在http://localhost:9100打开head界面
+
+   ![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/04.png)
+
+6. 跨域的问题
+
+   在head工具中发现报错Origin null is not allowed by Access-Control-Allow-Origin. 
+
+   原因是：head插件作为客户端要连接ES服务（localhost:9200），此时存在跨域问题，elasticsearch默认不允许跨 域访问。 
+
+   解决方案：
+
+   在confifig/elasticsearch.yml 后面增加以下参数： 
+
+   \#开启cors跨域访问支持，默认为false 
+
+   http.cors.enabled: true 
+
+   #跨域访问允许的域名地址，(允许所有域名)以上使 用正则 
+
+   http.cors.allow-origin: /.*/ 
+
+   注意：将confifig/elasticsearch.yml另存为utf-8编码格式。 
+
+##### ES在项目中的应用方式
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/01.png)
+
+1）用户在前端搜索关键字 
+
+2）项目前端通过http方式请求项目服务端 
+
+3）项目服务端通过Http RESTful方式请求ES集群进行搜索 
+
+4）ES集群从索引库检索数据。
+
+### 基本的概念
+
+##### 节点和集群
+
+es的本质是一个分布式数据库，允许多台服务器协同工作，每台服务器可以运行多个Elastic实例。
+
+单个Elastic实例成为一个节点（node）。一组节点构成一个集群(cluster)。
+
+##### 索引
+
+##### Type
+
+##### Document
+
+##### Field
+
+### 增删改查入门
+
+使用postman工具进行一系列的入门操作
+
+##### 索引
+
+###### 1. 创建索引
+
+`PUT` `http://localhost:9200/news` 配置分片1 副本0，先进行单机测试。
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/创建索引.png)
+
+###### 2. 删除索引
+
+`DELETE`请求`http://localhost:9200/news`
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/删除索引.png)
+
+##### 分词
+
+###### 1. 测试默认分词效果
+
+`POST`请求`http://localhost:9200/news/_analyze` 可以测试news索引库的默认分词效果
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/默认分词效果.png)
+
+可以看出对于汉字的分词是每一个字都被分开的，对于我们汉语的使用习惯来说，我们更希望按照常见的词语来进行分组，这时候我们就需要一个ik分词器的插件
+
+###### 2. 安装ik插件
+
+ik分词器（Github地址：https://github.com/medcl/elasticsearch-analysis-ik）
+
+下载对应版本的zip包后直接解压到es安装目录下的plugins目录下,并且重命名为ik目录。
+
+ 这里我们还是下载7.0版的分词器，对应于7.0版本的es
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/ik插件.png)
+
+重新启动es加载ik插件
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/ik插件1.png)
+
+###### 3. 测试ik分词效果
+
+`POST`请求`http://localhost:9200/news/_analyze` 测试下ik分词的效果
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/ik分词测试.png)
+
+ik分词的两种模式
+
+* ik_max_word
+
+  会将文本做最细粒度的拆分，如将“中华人民共和国人民大会堂”拆分为“中华人民共和国、中华人民、中华、华人、人民共和国、人民、共和国、大会堂、大会、会堂等词语。
+
+* ik_word
+
+  会做最粗粒度的拆分，比如会将“中华人民共和国人民大会堂”拆分为中华人民共和国、人民大会堂。 
+
+##### 映射
+
+###### 1. 映射的概念和数据类型
+
+创建映射其实就是向索引库创建field的过程。既然是创建字段(field)就要同时指定好字段的类型。
+
+es中常见的字段类型如下：
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/字段类型.png)
+
+针对我们经常使用到的字符串类型text进行如下的解析
+
+1） analyzer属性指定分词器默认是'standard'
+
+如下是指定使用ik细粒度分词
+
+```
+"name": { "type": "text", "analyzer":"ik_max_word" }
+```
+
+索引和搜索的分词器也可以分开
+
+如下表示在索引的时候使用`ik_max_word`搜索的时候使用`ik_smart`分词器
+
+```
+"name": { "type": "text", "analyzer":"ik_max_word", "search_analyzer":"ik_smart" }
+```
+2） index属性指定是否索引
+
+###### 2. 创建映射
+
+`POST`请求`http://localhost:9200/news/_mapping`
+
+```
+{
+    "properties": {
+    	 "id": {
+            "type": "long"
+        },
+        "title": {
+            "type": "text",
+            "analyzer": "ik_max_word",
+            "search_analyzer": "ik_smart"
+        },
+         "content": {
+            "type": "text",
+            "analyzer": "ik_max_word",
+            "search_analyzer": "ik_smart"
+        },
+         "author": {
+            "type": "keyword"
+    	 },
+         "createTime": {
+            "type": "date",
+            "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+        }
+    }
+}
+```
+
+
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/创建索引1.png)
+
+###### 3. 查询映射
+
+`GET`请求`http://localhost:9200/news/_mapping`
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/查询映射.png)
+
+##### document 文档
+
+###### 1. 添加文档
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/创建文档.png)
+
+###### 2. 文档简单查询
+
+简单查询就是通过url传递查询参数，发送get请求到es进行查询
+
+格式：get ../_search?q=..... 
+
+q是搜索字符串
+
+* 根据Id查询，因为我们创建了id字段的，因此不使用默认的id
+
+  GET  `http://localhost:9200/news/_doc/_search?q=id:1`
+
+* 查询所有
+
+  GET  `http://localhost:9200/news/_doc/_search`
+
+* 查询title中包含`开发`的记录
+
+  GET  `http://localhost:9200/news/_doc/_search?q=title:开发`
+
+* 查询author是lucy的记录
+
+  GET  `http://localhost:9200/news/_doc/_search?q=author:lucy`
+
+###### 3. 查询结果解析
+
+```
+{
+    "took": 1,
+    "timed_out": false,
+    "_shards": {
+        "total": 1,
+        "successful": 1,
+        "skipped": 0,
+        "failed": 0
+    },
+    "hits": {
+        "total": {
+            "value": 1,
+            "relation": "eq"
+        },
+        "max_score": 0.2876821,
+        "hits": [
+            {
+                "_index": "news",
+                "_type": "_doc",
+                "_id": "890E_3YBGmz_qzUptekm",
+                "_score": 0.2876821,
+                "_source": {
+                    "id": 1,
+                    "title": "Bootstrap开发",
+                    "content": "Bootstrap是由Twitter 推出的一个前台页面开发框架，是一个非常流行的开发框架，此框架集成了多种页面效果。此开发框架包含了大量 的CSS、JS程序代码，可以帮助开发者（尤其是不擅长页面开发的程序人员）轻松的实现一个不受浏览器限制的精 美界面效果。",
+                    "author": "lucy",
+                    "createTime": "2020-12-25"
+                }
+            }
+        ]
+    }
+}
+```
+
+took：本次操作花费的时间，单位为毫秒。 
+
+timed_out：请求是否超时 
+
+_shards：说明本次操作共搜索了哪些分片 
+
+hits：搜索命中的记录 
+
+hits.total ： 符合条件的文档总数 
+
+hits.hits ：匹配度较高的前N个文档 
+
+hits.max_score：文档匹配得分，这里为最高分 
+
+_score：每个文档都有一个匹配度得分，按照降序排列。 
+
+_source：显示了文档的原始内容。 
+
+##### DSL高级查询
+
+DSL(domain specific language)查询,是es提出的基于json的搜索方式，在搜素时传入特定的json格式数据完成不同需求的搜索。
+
+DSL搜索比url搜索更强大。
+
+###### 1. 查询全部
+
+`GET`请求`http://localhost:9200/news/_doc/_search`
+
+```
+{
+	"query":{
+		"match_all":{}
+	}
+}
+```
+
+
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/查询所有.png)
+
+###### 2. 分页查询
+
+from :是起始文档索引
+
+size:查询的文档数量
+
+`GET`请求`http://localhost:9200/news/_doc/_search`
+
+```
+{
+	"from":0,
+	"size":1,
+	"query":{
+		"match_all":{}
+	}
+}
+```
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/分页查询.png)
+
+
+
+###### 3.Term查询
+
+Term查询时不会对关键词分词，对关键词进行整体匹配
+
+`GET`请求`http://localhost:9200/news/_doc/_search`
+
+查询title中包含`开发`的记录
+
+```
+{
+      "query": {
+        "term": {
+        	"title":"开发"
+        }
+    }
+}
+```
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/term查询.png)
+
+###### 4.根据id查询
+
+`GET`请求`http://localhost:9200/news/_doc/_search`
+
+查询id为1和2的 记录
+
+```
+{
+    "query": {
+        "ids": {
+            "values": [
+                "1",
+                "2"
+            ]
+        }
+    }
+}
+```
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/根据id查询1.png)
+
+###### 5.全文检索
+
+`GET`请求`http://localhost:9200/news/_doc/_search`
+
+全文检索在对关键词进行分词后，在拿着词条对索引的数据进行查询。
+
+和term查询的区别就是是否对查询关键字进行分词。
+
+operator：or 表示 只要有一个词在文档中出现则就符合条件，and表示每个词都在文档中出现则才符合条件。
+
+
+
+```
+{
+	"query":{
+		"match":{
+			"content":{
+				"query":"bootstrap开发框架",
+				"operator":"or"
+			}
+		}
+	}
+}
+```
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/全文检索.png)
+
+以上的业务场景是这样的
+
+1） 例如搜素关键字为`bootstrap开发框架`分词为`bootstrap` ，`开发`,`框架`
+
+2）再使用分词后的关键字到索引中搜索
+
+3）设置operator为or，只要一个词匹配成功就返回该记录
+
+4）使用minimum_should_match可以指定文档匹配词的占比，如
+
+```
+{ "query": { "match" : { "description" : { "query" : "spring开发框架", "minimum_should_match": "80%" } } } }
+```
+
+设置"minimum_should_match": "80%"表示，三个词在文档的匹配占比为80%，即3*0.8=2.4，向上取整得2，表 示至少有两个词在文档中要匹配成功。 
+
+###### 6.Multi Query
+
+Multi Query其实一次性可以从多个字段中查询匹配，而之前说的term query和match query都只能匹配一个字段
+
+`GET`请求`http://localhost:9200/news/_doc/_search`
+
+可以从title和content两个字段中进行搜索，只要一个字段查询满足就可以
+
+```
+{
+	"query":{
+		"multi_match":{
+			"query":"bootstrap开发",
+			"fields":["title","content"],
+			"minimum_should_match":"50%"
+		}
+	}
+}
+```
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/multiMatch查询.png)
+
+* 提升boost
+
+  匹配多个字段时可以提升字段的boost（权重）来提高得分 
+
+  ```
+  { "query": { "multi_match" : { "query" : "spring框架", "minimum_should_match": "50%", "fields": [ "name^10", "description" ] }} }
+  ```
+
+  name^10” 表示权重提升10倍，执行上边的查询，发现name中包括spring关键字的文档排在前边。
+
+###### 7.bool查询
+
+bool查询实现将多个查询组合起来
+
+三个参数： 
+
+must：文档必须匹配must所包括的查询条件，相当于 “AND”
+
+should：文档应该匹配should所包括的查询条件其中的一个或多个，相当于 "OR"
+
+must_not：文档不能匹配must_not所包括的该查询条件，相当于“NOT“
+
+`GET`请求`http://localhost:9200/news/_doc/_search`
+
+同时满足multi query和term query
+
+```
+{
+    "query": {
+        "bool": {
+            "must": [
+                {
+                    "multi_match": {
+                        "query": "bootstrap开发",
+                        "fields": [
+                            "title^10",
+                            "content"
+                        ]
+                    }
+                },
+                {
+                    "term": {
+                        "author": "lucy"
+                    }
+                }
+            ]
+        }
+    }
+}
+```
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/bool查询.png)
+
+###### 8.过滤和排序
+
+过滤一般和查询共同使用，过滤的速度要比查询的速度快
+
+可以添加一个或多个排序，text字段不允许排序
+
+`GET`请求`http://localhost:9200/news/_doc/_search`
+
+从查询结果中筛选出author是lucy的，并且按照create倒序排列
+
+```
+{
+    "query": {
+        "bool": {
+            "must": [
+                {
+                    "multi_match": {
+                        "query": "bootstrap开发",
+                        "fields": [
+                            "title^10",
+                            "content"
+                        ]
+                    }
+                }
+            ],
+            "filter": [
+                {
+                    "term": {
+                        "author": "lucy"
+                    }
+                }
+            ]
+        }
+    },
+    "sort": [
+        {
+            "createTime": "desc"
+        }
+    ]
+}
+```
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/filter.png)
+
+
+
+###### 9.高亮显示
+
+高亮显示可以将搜索结果一个或多个字突出显示，以便向用户展示匹配关键字的位置。 
+
+`GET`请求`http://localhost:9200/news/_doc/_search`
+
+对title和content中包含关键字的地方进行高亮显示
+
+```
+{
+    "query": {
+        "bool": {
+            "must": [
+                {
+                    "multi_match": {
+                        "query": "bootstrap开发",
+                        "fields": [
+                            "title^10",
+                            "content"
+                        ]
+                    }
+                }
+            ],
+            "filter": [
+                {
+                    "term": {
+                        "author": "lucy"
+                    }
+                }
+            ]
+        }
+    },
+    "sort": [
+        {
+            "createTime": "desc"
+        }
+    ],
+    "highlight":{
+    	"pre_tags":"<span style='color:red'>",
+    	"post_tags":"</span>",
+    	"fields":{
+    		"title":{},
+    		"content":{}
+    	}
+    }
+}
+```
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/高亮.png)
+
+### NEST客户端在WebApi项目中的使用
+
+NEST是elastic search为.net 提供的高级客户端依赖组件。
+
+这里我们会建一个web api2项目，进行演示在.net中使用NEST实现文档的增删改查和全文检索
+
+
+
+##### 创建web api项目
+
+创建web api2项目，并且修改属性目标框架为.net framework 4.6.1
+
+##### 在nuget中找到NEST依赖，并且安装目前版本7.10.1
+
+##### 创建 ESHelper帮助类文件
+
+##### 配置链接
+
+这里因为对es的连接设置成private static只在创建的时候初始化一次
+
+```
+//单机连接的方式，默认使用articles索引
+private static ConnectionSettings settings = new ConnectionSettings(new Uri("http://localhost:9200")).DefaultIndex("articles");
+//创建client
+private static ElasticClient client = new ElasticClient(settings);
+```
+
+
+
+##### 使用attribute自动映射
+
+根据映射的字段创建类Article,并且使用attribute规定映射规则。
+
+1）Number 表示字段类型为数字
+
+2）Text 表示字段类型为字符串，可以进行索引
+
+​	Analyzer 可以规定索引时的分词工具
+
+​	Index 为true表示建立索引，并且可以被检索
+
+3）Keyword 表示字段类型为字符串，但是不可以进行索引
+
+4）Date 表示字段类型为日期
+
+```
+[ElasticsearchType(RelationName = "articles")]
+    public class Article
+    {
+        /// <summary>
+        /// id
+        /// </summary>
+        [Number]
+        public long Id { get; set; }
+        /// <summary>
+        /// 标题
+        /// </summary>
+        [Text(Analyzer = "ik_max_word", Index = true)]
+        public string Title { get; set; }
+        /// <summary>
+        /// 类型 新闻还是招聘
+        /// </summary>
+        [Keyword]
+        public string Type { get; set; }
+        /// <summary>
+        /// 内容
+        /// </summary>
+        [Text(Analyzer = "ik_max_word", Index = true)]
+        public string Content { get; set; }
+        /// <summary>
+        /// 新闻作者
+        /// </summary>
+        [Keyword]
+        public string Author { get; set; }
+        /// <summary>
+        /// 招聘公司
+        /// </summary>
+        [Text(Analyzer = "ik_max_word", Index = true)]
+        public string Company { get; set; }
+        /// <summary>
+        /// 招聘公司地址
+        /// </summary>
+        [Text(Analyzer = "ik_max_word", Index = true)]
+        public string CompanyAddress { get; set; }
+        /// <summary>
+        /// 创建时间
+        /// </summary>
+        [Date]
+        public DateTime CreateTime { get; set; }
+        /// <summary>
+        /// 访问路径
+        /// </summary>
+        [Keyword]
+        public string WebPath { get; set; }
+    }
+```
+
+
+
+##### 创建映射
+
+在ESHelper中创建映射的方法
+
+```
+/// <summary>
+        /// 创建映射
+        /// </summary>
+        /// <returns></returns>
+        public static bool CreateMapping()
+        {
+            try
+            {
+                //映射
+                CreateIndexResponse createIndexResponse = client.Indices.Create("articles", c => c.Map<Article>(m => m.AutoMap()));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+```
+
+在ESController中创建webapi对创建索引的请求
+
+```
+ /// <summary>
+        /// 创建映射
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost, Route("mapping")]
+        public IHttpActionResult Mapping()
+        {
+            return Ok(ESHelper.CreateMapping());
+
+        }
+```
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/nest创建索引.png)
+
+##### 创建或者修改单个文档
+
+在ESHelper中创建文档，并且在ESController中创建添加文档的接口，使用postman进行测试
+
+```
+
+        /// <summary>
+        /// 创建单个文档
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="article"></param>
+        /// <returns></returns>
+        public static dynamic CreateArticle(Article article)
+        {
+            var indexResponse = client.IndexDocument<Article>(article);
+            return new { flag = true, msg = "操作成功" };
+        }
+```
+
+```
+  /// <summary>
+        /// 添加一个文档
+        /// </summary>
+        /// <param name="article"></param>
+        /// <returns></returns>
+        [HttpPost, Route("add")]
+        public IHttpActionResult Add(Article article)
+        {
+            return Ok(ESHelper.CreateArticle(article));
+
+        }
+```
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/nest创建单个文档.png)
+
+##### 批量创建文档
+
+在ESHelper中批量创建文档，并且在ESController中创建批量添加文档的接口，使用postman进行测试
+
+```
+ /// <summary>
+        /// 批量新增
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="list"></param>
+        /// <returns></returns>
+        public static dynamic CreateBulk(List<Article> list)
+        {
+
+            var bulkAllObservable = client.BulkAll(list, b => b
+                                .Index("articles")
+                                .BackOffTime("30s")
+                                .BackOffRetries(2)
+                                .RefreshOnCompleted()
+                                .MaxDegreeOfParallelism(Environment.ProcessorCount)
+                                .Size(1000)
+                                    )
+                                .Wait(TimeSpan.FromMinutes(15), next =>
+                                {
+                                    // do something e.g. write number of pages to console
+                                });
+            return new { flag = true, msg = "操作成功" };
+        }
+```
+
+```
+ /// <summary>
+        /// 批量添加文档
+        /// </summary>
+        /// <param name="list"></param>
+        /// <returns></returns>
+
+        [HttpPost, Route("addBulk")]
+        public IHttpActionResult addBulk(List<Article> list)
+        {
+            return Ok(ESHelper.CreateBulk(list));
+
+        }
+```
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/nest批量添加文档.png)
+
+##### 批量删除
+
+批量删除我们是先根据ids查询出对应的文档，然后进行批量删除
+
+* 根据ids查询多个记录
+
+  在ESHelper中根据id批量获取文档
+
+  ```
+    /// <summary>
+          /// 根据id查询
+          /// </summary>
+          /// <param name="ids"></param>
+          /// <returns></returns>
+          public static List<Article> GetByIds(List<long> ids)
+          {
+              var searchResponse = client.Search<Article>(s => s.Query(q => q.Ids(m => m.Values(ids))));
+              return searchResponse.Documents.ToList();
+  
+          }
+  ```
+
+  
+
+* 批量删除
+
+  在ESHelper中批量删除，并且在ESController中创建批量删除文档的接口，使用postman进行测试
+
+  ```
+    /// <summary>
+          /// 批量删除
+          /// </summary>
+          /// <param name="client"></param>
+          /// <param name="list"></param>
+          /// <returns></returns>
+          public static dynamic DeleteBulk(List<Article> list)
+          {
+              var bulkResponse = client.DeleteMany(list);
+              return new { flag = true, msg = "操作成功" };
+          }
+  ```
+
+  ```
+   /// <summary>
+          /// 批量删除
+          /// </summary>
+          /// <param name="ids"></param>
+          /// <returns></returns>
+          [HttpPost, Route("delete")]
+          public IHttpActionResult Delete(List<long> ids)
+          {
+              //根据id获取list
+              var list = ESHelper.GetByIds(ids);
+              return Ok(ESHelper.DeleteBulk(list));
+  
+          }
+  ```
+
+  ![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/nest批量删除.png)
+
+##### 全文检索
+
+项目中的全文检索解决方案就是multi match +highlight
+
+multi match 可以对多个字段进行检索并且通过minimum_should_match和boost提高匹配度，
+
+最终的显示结果使用highlight高亮。
+
+在ESHelper中创建全文检索的方法，并且在ESController中创建搜索文档的接口，使用postman进行测试
+
+```
+ /// <summary>
+        /// 全文检索
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="keyword"></param>
+        /// <returns></returns>
+        public static Dictionary<string, object> Search(int page, string keyword)
+        {
+            try
+            {
+                int size = 10;
+                int from = (page - 1) * size;
+                var searchResponse = client.Search<Article>(s => s
+                                          .From(from)
+                                          .Size(size)
+                                          .Query(q =>
+                                          q.MultiMatch(c => c
+                                                .Fields(f => f.Field(a => a.Title, 10).Field(a => a.Content).Field(a => a.Company, 10))
+                                                .Operator(Operator.Or)//只要有一个词在文档中出现都可以
+                                                .MinimumShouldMatch(new MinimumShouldMatch("50%"))
+                                                .Query(keyword)
+                                            ))
+                                             .Highlight(h => h
+                                            .PreTags("<span style='color:red;'>")
+                                            .PostTags("</span>")
+                                            .FragmentSize(100)
+                                            .NoMatchSize(150)
+                                            .Fields(
+                                                fs => fs
+                                                    .Field(p => p.Title),
+                                                 fs => fs
+                                                    .Field(p => p.Company),
+                                                fs => fs
+                                                     .Field(p => p.Content)
+                                            )
+                                          )
+                                      );
+
+                var hits = searchResponse.HitsMetadata.Hits;
+                var total = searchResponse.Total;
+
+                foreach (var hit in hits)
+                {
+                    foreach (var highlightField in hit.Highlight)
+                    {
+                        if (highlightField.Key == "title")
+                        {
+                            foreach (var highlight in highlightField.Value)
+                            {
+                                hit.Source.Title = highlight.ToString();
+                            }
+                        }
+
+                        if (highlightField.Key == "content")
+                        {
+                            foreach (var highlight in highlightField.Value)
+                            {
+                                hit.Source.Content = highlight.ToString();
+                            }
+                        }
+
+                        if (highlightField.Key == "company")
+                        {
+                            foreach (var highlight in highlightField.Value)
+                            {
+                                hit.Source.Company = highlight.ToString();
+                            }
+                        }
+                    }
+                }
+                var hitsJson = Newtonsoft.Json.JsonConvert.SerializeObject(hits);
+
+                List<Article> list = new List<Article>();
+                foreach (var item in hits)
+                {
+                    list.Add(item.Source);
+                }
+                Dictionary<string, object> result = new Dictionary<string, object>();
+                result.Add("list", list);
+                result.Add("total", total);
+
+                return result;
+
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+        }
+```
+
+```
+ /// <summary>
+        /// 全文检索
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="keyword"></param>
+        /// <returns></returns>
+        [HttpGet, Route("search")]
+        public IHttpActionResult Search(int? page,string keyword)
+        {
+           int pageIndex = page ?? 1;
+            return Ok(ESHelper.Search(pageIndex, keyword));
+
+        }
+```
+
+![](https://gitee.com/lucyliang01/image-repository/raw/master/elasticsearch/nest全文检索.png)
+
+##### ESHelper.cs代码
+
+```
+ public class ESHelper
+    {
+        private static ConnectionSettings settings = new ConnectionSettings(new Uri("http://localhost:9200")).DefaultIndex("articles");
+
+        private static ElasticClient client = new ElasticClient(settings);
+
+        /// <summary>
+        /// 获取client
+        /// </summary>
+        /// <returns></returns>
+        public static ElasticClient GetClient()
+        {
+            return client;
+        }
+        /// <summary>
+        /// 创建映射
+        /// </summary>
+        /// <returns></returns>
+        public static bool CreateMapping()
+        {
+            try
+            {
+                //映射
+                CreateIndexResponse createIndexResponse = client.Indices.Create("articles", c => c.Map<Article>(m => m.AutoMap()));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 创建单个文档
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="article"></param>
+        /// <returns></returns>
+        public static dynamic CreateArticle(Article article)
+        {
+            var indexResponse = client.IndexDocument<Article>(article);
+            return new { flag = true, msg = "操作成功" };
+        }
+
+        /// <summary>
+        /// 批量新增
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="list"></param>
+        /// <returns></returns>
+        public static dynamic CreateBulk(List<Article> list)
+        {
+
+            var bulkAllObservable = client.BulkAll(list, b => b
+                                .Index("articles")
+                                .BackOffTime("30s")
+                                .BackOffRetries(2)
+                                .RefreshOnCompleted()
+                                .MaxDegreeOfParallelism(Environment.ProcessorCount)
+                                .Size(1000)
+                                    )
+                                .Wait(TimeSpan.FromMinutes(15), next =>
+                                {
+                                    // do something e.g. write number of pages to console
+                                });
+            return new { flag = true, msg = "操作成功" };
+        }
+        /// <summary>
+        /// 根据id查询
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        public static List<Article> GetByIds(List<long> ids)
+        {
+            var searchResponse = client.Search<Article>(s => s.Query(q => q.Ids(m => m.Values(ids))));
+            return searchResponse.Documents.ToList();
+
+        }
+
+        /// <summary>
+        /// 批量删除
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="list"></param>
+        /// <returns></returns>
+        public static dynamic DeleteBulk(List<Article> list)
+        {
+            var bulkResponse = client.DeleteMany(list);
+            return new { flag = true, msg = "操作成功" };
+        }
+        /// <summary>
+        /// 全文检索
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="keyword"></param>
+        /// <returns></returns>
+        public static Dictionary<string, object> Search(int page, string keyword)
+        {
+            try
+            {
+                int size = 10;
+                int from = (page - 1) * size;
+                var searchResponse = client.Search<Article>(s => s
+                                          .From(from)
+                                          .Size(size)
+                                          .Query(q =>
+                                          q.MultiMatch(c => c
+                                                .Fields(f => f.Field(a => a.Title, 10).Field(a => a.Content).Field(a => a.Company, 10))
+                                                .Operator(Operator.Or)//只要有一个词在文档中出现都可以
+                                                .MinimumShouldMatch(new MinimumShouldMatch("50%"))
+                                                .Query(keyword)
+                                            ))
+                                             .Highlight(h => h
+                                            .PreTags("<span style='color:red;'>")
+                                            .PostTags("</span>")
+                                            .FragmentSize(100)
+                                            .NoMatchSize(150)
+                                            .Fields(
+                                                fs => fs
+                                                    .Field(p => p.Title),
+                                                 fs => fs
+                                                    .Field(p => p.Company),
+                                                fs => fs
+                                                     .Field(p => p.Content)
+                                            )
+                                          )
+                                      );
+
+                var hits = searchResponse.HitsMetadata.Hits;
+                var total = searchResponse.Total;
+
+                foreach (var hit in hits)
+                {
+                    foreach (var highlightField in hit.Highlight)
+                    {
+                        if (highlightField.Key == "title")
+                        {
+                            foreach (var highlight in highlightField.Value)
+                            {
+                                hit.Source.Title = highlight.ToString();
+                            }
+                        }
+
+                        if (highlightField.Key == "content")
+                        {
+                            foreach (var highlight in highlightField.Value)
+                            {
+                                hit.Source.Content = highlight.ToString();
+                            }
+                        }
+
+                        if (highlightField.Key == "company")
+                        {
+                            foreach (var highlight in highlightField.Value)
+                            {
+                                hit.Source.Company = highlight.ToString();
+                            }
+                        }
+                    }
+                }
+                var hitsJson = Newtonsoft.Json.JsonConvert.SerializeObject(hits);
+
+                List<Article> list = new List<Article>();
+                foreach (var item in hits)
+                {
+                    list.Add(item.Source);
+                }
+                Dictionary<string, object> result = new Dictionary<string, object>();
+                result.Add("list", list);
+                result.Add("total", total);
+
+                return result;
+
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+        }
+    }
+
+    [ElasticsearchType(RelationName = "articles")]
+    public class Article
+    {
+        /// <summary>
+        /// id
+        /// </summary>
+        [Number]
+        public long Id { get; set; }
+        /// <summary>
+        /// 标题
+        /// </summary>
+        [Text(Analyzer = "ik_max_word", Index = true)]
+        public string Title { get; set; }
+        /// <summary>
+        /// 类型 新闻还是招聘
+        /// </summary>
+        [Keyword]
+        public string Type { get; set; }
+        /// <summary>
+        /// 内容
+        /// </summary>
+        [Text(Analyzer = "ik_max_word", Index = true)]
+        public string Content { get; set; }
+        /// <summary>
+        /// 新闻作者
+        /// </summary>
+        [Keyword]
+        public string Author { get; set; }
+        /// <summary>
+        /// 招聘公司
+        /// </summary>
+        [Text(Analyzer = "ik_max_word", Index = true)]
+        public string Company { get; set; }
+        /// <summary>
+        /// 招聘公司地址
+        /// </summary>
+        [Text(Analyzer = "ik_max_word", Index = true)]
+        public string CompanyAddress { get; set; }
+        /// <summary>
+        /// 创建时间
+        /// </summary>
+        [Date]
+        public DateTime CreateTime { get; set; }
+        /// <summary>
+        /// 访问路径
+        /// </summary>
+        [Keyword]
+        public string WebPath { get; set; }
+    }
+```
+
+
+
+##### ESController.cs代码
+
+```
+ [RoutePrefix("api/es")]
+    public class ESController : ApiController
+    {
+        /// <summary>
+        /// 创建映射
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost, Route("mapping")]
+        public IHttpActionResult Mapping()
+        {
+            return Ok(ESHelper.CreateMapping());
+
+        }
+
+        /// <summary>
+        /// 添加一个文档
+        /// </summary>
+        /// <param name="article"></param>
+        /// <returns></returns>
+        [HttpPost, Route("add")]
+        public IHttpActionResult Add(Article article)
+        {
+            return Ok(ESHelper.CreateArticle(article));
+
+        }
+        /// <summary>
+        /// 批量添加文档
+        /// </summary>
+        /// <param name="list"></param>
+        /// <returns></returns>
+
+        [HttpPost, Route("addBulk")]
+        public IHttpActionResult addBulk(List<Article> list)
+        {
+            return Ok(ESHelper.CreateBulk(list));
+
+        }
+
+        /// <summary>
+        /// 批量删除
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        [HttpPost, Route("delete")]
+        public IHttpActionResult Delete(List<long> ids)
+        {
+            //根据id获取list
+            var list = ESHelper.GetByIds(ids);
+            return Ok(ESHelper.DeleteBulk(list));
+
+        }
+
+        /// <summary>
+        /// 全文检索
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="keyword"></param>
+        /// <returns></returns>
+        [HttpGet, Route("search")]
+        public IHttpActionResult Search(int? page,string keyword)
+        {
+           int pageIndex = page ?? 1;
+            return Ok(ESHelper.Search(pageIndex, keyword));
+
+        }
+    }
+```
